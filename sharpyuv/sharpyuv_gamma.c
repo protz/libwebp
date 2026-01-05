@@ -32,7 +32,9 @@ static const double kGammaF = 1. / 0.45;
 
 static volatile int kGammaTablesSOk = 0;
 void SharpYuvInitGammaTables(void) {
+#ifndef SCYLLA
   assert(GAMMA_TO_LINEAR_BITS <= 16);
+#endif
   if (!kGammaTablesSOk) {
     int v;
     const double a = 0.09929682680944;
@@ -358,7 +360,9 @@ uint32_t SharpYuvGammaToLinear(uint16_t v, int bit_depth,
       linear = ToLinearHlg(v_float);
       break;
     default:
+#ifndef SCYLLA
       assert(0);
+#endif
       linear = 0;
       break;
   }
@@ -412,7 +416,9 @@ uint16_t SharpYuvLinearToGamma(uint32_t v, int bit_depth,
       linear = FromLinearHlg(v_float);
       break;
     default:
+#ifndef SCYLLA
       assert(0);
+#endif
       linear = 0;
       break;
   }

@@ -35,7 +35,9 @@ void SharpYuvComputeConversionMatrix(const SharpYuvColorSpace* yuv_color_space,
   float scale_u = cb;
   float scale_v = cr;
   float add_uv = (float)(128 << shift);
+#ifndef SCYLLA
   assert(yuv_color_space->bit_depth >= 8);
+#endif
 
   if (yuv_color_space->range == kSharpYuvRangeLimited) {
     scale_y *= (219 << shift) / denom;

@@ -167,9 +167,9 @@ static void SharpYuvFilterRow_NEON(const int16_t* A, const int16_t* B, int len,
 extern void InitSharpYuvNEON(void);
 
 WEBP_TSAN_IGNORE_FUNCTION void InitSharpYuvNEON(void) {
-  SharpYuvUpdateY = SharpYuvUpdateY_NEON;
-  SharpYuvUpdateRGB = SharpYuvUpdateRGB_NEON;
-  SharpYuvFilterRow = SharpYuvFilterRow_NEON;
+  // SharpYuvUpdateY = SharpYuvUpdateY_NEON;
+  // SharpYuvUpdateRGB = SharpYuvUpdateRGB_NEON;
+  // SharpYuvFilterRow = SharpYuvFilterRow_NEON;
 }
 
 #else  // !WEBP_USE_NEON

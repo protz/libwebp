@@ -14,6 +14,8 @@ endif()
 
 project(WebP C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+
 # Options for coder / decoder executables.
 if(BUILD_SHARED_LIBS)
   set(WEBP_LINK_STATIC_DEFAULT OFF)
@@ -673,19 +675,19 @@ if(WEBP_BUILD_EXTRAS)
   # libextras
   add_library(extras STATIC ${WEBP_EXTRAS_SRCS})
   target_include_directories(
-    extras PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
+    extras BEFORE PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
                    ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
   # get_disto
   add_executable(get_disto ${GET_DISTO_SRCS})
   target_link_libraries(get_disto imagedec)
-  target_include_directories(get_disto PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  target_include_directories(get_disto BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                                ${CMAKE_CURRENT_BINARY_DIR}/src)
 
   # webp_quality
   add_executable(webp_quality ${WEBP_QUALITY_SRCS})
   target_link_libraries(webp_quality exampleutil imagedec extras)
-  target_include_directories(webp_quality PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  target_include_directories(webp_quality BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                                   ${CMAKE_CURRENT_BINARY_DIR})
 
   # vwebp_sdl
@@ -694,7 +696,7 @@ if(WEBP_BUILD_EXTRAS)
     add_executable(vwebp_sdl ${VWEBP_SDL_SRCS})
     target_link_libraries(vwebp_sdl ${SDL2_LIBRARIES} imageioutil webp)
     target_include_directories(
-      vwebp_sdl PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
+      vwebp_sdl BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
                         ${CMAKE_CURRENT_BINARY_DIR}/src ${SDL2_INCLUDE_DIRS})
     set(WEBP_HAVE_SDL 1)
     target_compile_definitions(vwebp_sdl PUBLIC WEBP_HAVE_SDL)

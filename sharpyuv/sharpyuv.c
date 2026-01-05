@@ -125,7 +125,9 @@ static void UpdateChroma(const fixed_y_t* src1, const fixed_y_t* src2,
 
 static void StoreGray(const fixed_y_t* rgb, fixed_y_t* y, int w) {
   int i = 0;
+#ifndef SCYLLA
   assert(w > 0);
+#endif
   do {
     y[i] = RGBToGray(rgb[0 * w + i], rgb[1 * w + i], rgb[2 * w + i]);
   } while (++i < w);
@@ -161,9 +163,10 @@ static void ImportOneRow(const uint8_t* const r_ptr, const uint8_t* const g_ptr,
       dst[i + 1 * w] = Shift(g_ptr[off], shift);
       dst[i + 2 * w] = Shift(b_ptr[off], shift);
     } else {
-      dst[i + 0 * w] = Shift(((uint16_t*)r_ptr)[off], shift);
-      dst[i + 1 * w] = Shift(((uint16_t*)g_ptr)[off], shift);
-      dst[i + 2 * w] = Shift(((uint16_t*)b_ptr)[off], shift);
+      // SCYLLA: not UB because the object is not modified, but distateful nonetheless
+      dst[i + 0 * w] = Shift(((const uint16_t*)r_ptr)[off], shift);
+      dst[i + 1 * w] = Shift(((const uint16_t*)g_ptr)[off], shift);
+      dst[i + 2 * w] = Shift(((const uint16_t*)b_ptr)[off], shift);
     }
   } while (++i < pic_width);
   if (pic_width & 1) {  // replicate rightmost pixel
@@ -280,11 +283,15 @@ static int ConvertWRGBToYUV(const fixed_y_t* best_y, const fixed_t* best_uv,
 //------------------------------------------------------------------------------
 // Main function
 
+#ifdef SCYLLA
+#define SafeMalloc(nmemb, size) (malloc((nmemb)*(size)))
+#else
 static void* SafeMalloc(uint64_t nmemb, size_t size) {
   const uint64_t total_size = nmemb * (uint64_t)size;
   if (total_size != (size_t)total_size) return NULL;
   return malloc((size_t)total_size);
 }
+#endif
 
 static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
                             const uint8_t* b_ptr, int rgb_step, int rgb_stride,
@@ -315,36 +322,45 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
        best_rgb_y_size) +
           (best_uv_base_size + target_uv_base_size + best_rgb_uv_size),
       sizeof(*tmp_buffer));
-  fixed_y_t *best_y_base, *target_y_base, *best_rgb_y;
-  fixed_t *best_uv_base, *target_uv_base, *best_rgb_uv;
-  fixed_y_t *best_y, *target_y;
-  fixed_t *best_uv, *target_uv;
+
+  if (tmp_buffer == NULL) {
+    return 0;
+  }
+
+  fixed_y_t *tmp_buffer0 = tmp_buffer + 0;
+  fixed_y_t *best_y_base = tmp_buffer + tmp_buffer_size;
+  fixed_y_t *target_y_base = tmp_buffer + (tmp_buffer_size + best_y_base_size);
+  fixed_y_t *best_rgb_y = tmp_buffer + (tmp_buffer_size + best_y_base_size + target_y_base_size);
+  fixed_y_t *best_uv_base1 = tmp_buffer + (tmp_buffer_size + best_y_base_size + target_y_base_size + best_rgb_y_size);
+  fixed_y_t *target_uv_base1 = tmp_buffer + (tmp_buffer_size + best_y_base_size + target_y_base_size + best_rgb_y_size + best_uv_base_size);
+  fixed_y_t *best_rgb_uv1 = tmp_buffer + (tmp_buffer_size + best_y_base_size + target_y_base_size + best_rgb_y_size + best_uv_base_size + target_uv_base_size);
+
+  // SCYLLA: violates strict aliasing
+  fixed_t *best_uv_base = (fixed_t*)best_uv_base1;
+  fixed_t *target_uv_base = (fixed_t*)target_uv_base1;
+  fixed_t *best_rgb_uv = (fixed_t*)best_rgb_uv1;
+
+#define best_y (best_y_base + best_y_ofs)
+  size_t best_y_ofs = 0;
+#define target_y (target_y_base + target_y_ofs)
+  size_t target_y_ofs = 0;
+#define best_uv (best_uv_base + best_uv_ofs)
+  size_t best_uv_ofs = 0;
+#define target_uv (target_uv_base + target_uv_ofs)
+  size_t target_uv_ofs = 0;
   const uint64_t diff_y_threshold = (uint64_t)(3.0 * w * h);
   int ok;
+#ifndef SCYLLA
   assert(w > 0);
   assert(h > 0);
   assert(sizeof(fixed_y_t) == sizeof(fixed_t));
-
-  if (tmp_buffer == NULL) {
-    ok = 0;
-    goto End;
-  }
-  best_y_base = tmp_buffer + tmp_buffer_size;
-  target_y_base = best_y_base + best_y_base_size;
-  best_rgb_y = target_y_base + target_y_base_size;
-  best_uv_base = (fixed_t*)(best_rgb_y + best_rgb_y_size);
-  target_uv_base = best_uv_base + best_uv_base_size;
-  best_rgb_uv = target_uv_base + target_uv_base_size;
-  best_y = best_y_base;
-  target_y = target_y_base;
-  best_uv = best_uv_base;
-  target_uv = target_uv_base;
+#endif
 
   // Import RGB samples to W/RGB representation.
   for (j = 0; j < height; j += 2) {
     const int is_last_row = (j == height - 1);
-    fixed_y_t* const src1 = tmp_buffer + 0 * w;
-    fixed_y_t* const src2 = tmp_buffer + 3 * w;
+    fixed_y_t* const src1 = tmp_buffer0 + 0 * w;
+    fixed_y_t* const src2 = tmp_buffer0 + 3 * w;
 
     // prepare two rows of input
     ImportOneRow(r_ptr, g_ptr, b_ptr, rgb_step, rgb_bit_depth, width, src1);
@@ -361,10 +377,10 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
     UpdateW(src2, target_y + w, w, y_bit_depth, transfer_type);
     UpdateChroma(src1, src2, target_uv, uv_w, y_bit_depth, transfer_type);
     memcpy(best_uv, target_uv, 3 * uv_w * sizeof(*best_uv));
-    best_y += 2 * w;
-    best_uv += 3 * uv_w;
-    target_y += 2 * w;
-    target_uv += 3 * uv_w;
+    best_y_ofs += 2 * w;
+    best_uv_ofs += 3 * uv_w;
+    target_y_ofs += 2 * w;
+    target_uv_ofs += 3 * uv_w;
     r_ptr += 2 * rgb_stride;
     g_ptr += 2 * rgb_stride;
     b_ptr += 2 * rgb_stride;
@@ -372,24 +388,27 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
 
   // Iterate and resolve clipping conflicts.
   for (iter = 0; iter < kNumIterations; ++iter) {
-    const fixed_t* cur_uv = best_uv_base;
-    const fixed_t* prev_uv = best_uv_base;
+#define cur_uv (best_uv_base + cur_uv_ofs)
+    size_t cur_uv_ofs = 0;
+#define prev_uv (best_uv_base + prev_uv_ofs)
+    size_t prev_uv_ofs = 0;
     uint64_t diff_y_sum = 0;
 
-    best_y = best_y_base;
-    best_uv = best_uv_base;
-    target_y = target_y_base;
-    target_uv = target_uv_base;
+    best_y_ofs = 0;
+    best_uv_ofs = 0;
+    target_y_ofs = 0;
+    target_uv_ofs = 0;
     j = 0;
     do {
-      fixed_y_t* const src1 = tmp_buffer + 0 * w;
-      fixed_y_t* const src2 = tmp_buffer + 3 * w;
+      fixed_y_t* const src1 = tmp_buffer0 + 0 * w;
+      fixed_y_t* const src2 = tmp_buffer0 + 3 * w;
       {
-        const fixed_t* const next_uv = cur_uv + ((j < h - 2) ? 3 * uv_w : 0);
+        size_t next_uv_ofs = cur_uv_ofs + ((j < h - 2) ? 3 * uv_w : 0);
+#define next_uv (best_uv_base + next_uv_ofs)
         InterpolateTwoRows(best_y, prev_uv, cur_uv, next_uv, w, src1, src2,
                            y_bit_depth);
-        prev_uv = cur_uv;
-        cur_uv = next_uv;
+        prev_uv_ofs = cur_uv_ofs;
+        cur_uv_ofs = next_uv_ofs;
       }
 
       UpdateW(src1, best_rgb_y + 0 * w, w, y_bit_depth, transfer_type);
@@ -401,10 +420,10 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
           SharpYuvUpdateY(target_y, best_rgb_y, best_y, 2 * w, y_bit_depth);
       SharpYuvUpdateRGB(target_uv, best_rgb_uv, best_uv, 3 * uv_w);
 
-      best_y += 2 * w;
-      best_uv += 3 * uv_w;
-      target_y += 2 * w;
-      target_uv += 3 * uv_w;
+      best_y_ofs += 2 * w;
+      best_uv_ofs += 3 * uv_w;
+      target_y_ofs += 2 * w;
+      target_uv_ofs += 3 * uv_w;
       j += 2;
     } while (j < h);
     // test exit condition
@@ -420,7 +439,6 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
                         u_stride, v_ptr, v_stride, rgb_bit_depth, yuv_bit_depth,
                         width, height, yuv_matrix);
 
-End:
   free(tmp_buffer);
   return ok;
 }
@@ -448,25 +466,25 @@ End:
 // users can declare it as extern and call it with an alternate VP8CPUInfo
 // function.
 extern VP8CPUInfo SharpYuvGetCPUInfo;
-SHARPYUV_EXTERN void SharpYuvInit(VP8CPUInfo cpu_info_func);
-void SharpYuvInit(VP8CPUInfo cpu_info_func) {
-  static volatile VP8CPUInfo sharpyuv_last_cpuinfo_used =
-      (VP8CPUInfo)&sharpyuv_last_cpuinfo_used;
-  LOCK_ACCESS;
-  // Only update SharpYuvGetCPUInfo when called from external code to avoid a
-  // race on reading the value in SharpYuvConvert().
-  if (cpu_info_func != (VP8CPUInfo)&SharpYuvGetCPUInfo) {
-    SharpYuvGetCPUInfo = cpu_info_func;
-  }
-  if (sharpyuv_last_cpuinfo_used == SharpYuvGetCPUInfo) {
-    UNLOCK_ACCESS_AND_RETURN;
-  }
+SHARPYUV_EXTERN void SharpYuvInit();
+void SharpYuvInit() {
+  // static volatile VP8CPUInfo sharpyuv_last_cpuinfo_used =
+  //     (VP8CPUInfo)&sharpyuv_last_cpuinfo_used;
+  // LOCK_ACCESS;
+  // // Only update SharpYuvGetCPUInfo when called from external code to avoid a
+  // // race on reading the value in SharpYuvConvert().
+  // if (cpu_info_func != (VP8CPUInfo)&SharpYuvGetCPUInfo) {
+  //   SharpYuvGetCPUInfo = cpu_info_func;
+  // }
+  // if (sharpyuv_last_cpuinfo_used == SharpYuvGetCPUInfo) {
+  //   UNLOCK_ACCESS_AND_RETURN;
+  // }
 
-  SharpYuvInitDsp();
+  // SharpYuvInitDsp();
   SharpYuvInitGammaTables();
 
-  sharpyuv_last_cpuinfo_used = SharpYuvGetCPUInfo;
-  UNLOCK_ACCESS_AND_RETURN;
+  // sharpyuv_last_cpuinfo_used = SharpYuvGetCPUInfo;
+  // UNLOCK_ACCESS_AND_RETURN;
 }
 
 int SharpYuvConvert(const void* r_ptr, const void* g_ptr, const void* b_ptr,
@@ -533,7 +551,7 @@ int SharpYuvConvertWithOptions(const void* r_ptr, const void* g_ptr,
     return 0;
   }
   // The address of the function pointer is used to avoid a read race.
-  SharpYuvInit((VP8CPUInfo)&SharpYuvGetCPUInfo);
+  SharpYuvInit();
 
   // Add scaling factor to go from rgb_bit_depth to yuv_bit_depth, to the
   // rgb->yuv conversion matrix.
