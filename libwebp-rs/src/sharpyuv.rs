@@ -801,7 +801,8 @@ pub
 struct SharpYuvConversionMatrix
 { pub rgb_to_y: [i32; 4], pub rgb_to_u: [i32; 4], pub rgb_to_v: [i32; 4] }
 
-pub fn SharpYuvConvert(
+pub
+fn SharpYuvConvert(
   r_ptr: &[u8],
   g_ptr: &[u8],
   b_ptr: &[u8],
@@ -1006,6 +1007,7 @@ pub fn SharpYuvOptionsInitInternal<'a, 'b>(
 }
 
 #[derive(PartialEq, Clone, Copy)]
+#[repr(C)]
 pub enum SharpYuvTransferFunctionType
 {
   kSharpYuvTransferFunctionBt709 =1,
@@ -1319,6 +1321,7 @@ pub fn SharpYuvGetConversionMatrix <'a>(matrix_type: SharpYuvMatrixType) ->
 }
 
 #[derive(PartialEq, Clone, Copy)]
+#[repr(C)]
 pub enum SharpYuvMatrixType
 {
   kSharpYuvMatrixWebp =0,
