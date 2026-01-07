@@ -434,11 +434,20 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
     prev_diff_y_sum = diff_y_sum;
   }
 
+//   for (size_t i = 0; i < height/2*u_stride + width/2; ++i) {
+//     printf("%d, ", u_ptr[i]);
+//   }
+//   printf("\n");
+
   // final reconstruction
   ok = ConvertWRGBToYUV(best_y_base, best_uv_base, y_ptr, y_stride, u_ptr,
                         u_stride, v_ptr, v_stride, rgb_bit_depth, yuv_bit_depth,
                         width, height, yuv_matrix);
 
+//   for (size_t i = 0; i < height/2*u_stride + width/2; ++i) {
+//     printf("%d, ", u_ptr[i]);
+//   }
+//   printf("\n");
   free(tmp_buffer);
   return ok;
 }
