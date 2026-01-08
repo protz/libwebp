@@ -5,8 +5,6 @@
 #![allow(unreachable_patterns)]
 #![allow(unused_mut)]
 
-#![allow(static_mut_refs)]
-
 pub fn ConvertWRGBToYUV(
   mut best_y: &[u16],
   mut best_uv: &[i16],
@@ -357,7 +355,7 @@ pub fn DoSharpArgbToYuv(
                   SharpYuvUpdateY(
                     &best_rgb_y.0[target_y_ofs..],
                     best_uv_base1.0,
-                    &mut target_y_base.0[best_y_ofs..],
+                    &target_y_base.0[best_y_ofs..],
                     2i32.wrapping_mul(w),
                     y_bit_depth
                   )
@@ -590,7 +588,7 @@ pub fn ScaleDown(
   u32
 }
 
-#[derive(PartialEq, Clone, Copy, Default)]
+#[derive(PartialEq, Clone, Copy)]
 #[repr(C)]
 pub
 struct SharpYuvConversionMatrix
@@ -767,9 +765,9 @@ struct SharpYuvOptions <'a>
   pub transfer_type: SharpYuvTransferFunctionType
 }
 
-#[inline] pub fn SharpYuvOptionsInit<'a>(
-  yuv_matrix: &'a[SharpYuvConversionMatrix],
-  options: &mut [SharpYuvOptions<'a>]
+#[inline] pub fn SharpYuvOptionsInit(
+  yuv_matrix: &[SharpYuvConversionMatrix],
+  options: &mut [SharpYuvOptions]
 ) ->
     i32
 {
@@ -781,9 +779,9 @@ struct SharpYuvOptions <'a>
   )
 }
 
-pub fn SharpYuvOptionsInitInternal<'a>(
-  yuv_matrix: &'a[SharpYuvConversionMatrix],
-  options: &mut [SharpYuvOptions<'a>],
+pub fn SharpYuvOptionsInitInternal(
+  yuv_matrix: &[SharpYuvConversionMatrix],
+  options: &mut [SharpYuvOptions],
   version: i32
 ) ->
     i32
@@ -990,7 +988,7 @@ struct SharpYuvColorSpace
 
 pub fn SharpYuvComputeConversionMatrix(
   yuv_color_space: &[SharpYuvColorSpace],
-  matrix: &mut [SharpYuvConversionMatrix]
+  matrix: &[SharpYuvConversionMatrix]
 )
 {
   let kr: f32 = (yuv_color_space[0usize]).kr;
@@ -1049,7 +1047,6 @@ pub fn SharpYuvGetConversionMatrix <'a>(matrix_type: SharpYuvMatrixType) ->
 }
 
 #[derive(PartialEq, Clone, Copy)]
-#[repr(C)]
 pub enum SharpYuvMatrixType
 {
   kSharpYuvMatrixWebp =0,
@@ -1376,7 +1373,7 @@ pub fn FromLinearSrgb(value: u32, bit_depth: i32) -> u16
   return
   FixedPointInterpolation(
     value as i32,
-    unsafe { &kLinearToGammaTabS },
+    &kLinearToGammaTabS,
     16i32.wrapping_sub(9i32),
     bit_depth.wrapping_sub(16i32)
   )
@@ -1443,7 +1440,7 @@ pub fn SharpYuvGammaToLinear(
 
 pub fn SharpYuvInitGammaTables()
 {
-  if unsafe { kGammaTablesSOk } == 0i32
+  if kGammaTablesSOk == 0i32
   {
     let mut v: i32;
     let a: f64 = 0.0992968268094f64;
@@ -1464,13 +1461,13 @@ pub fn SharpYuvInitGammaTables()
             { value = g / 4.5f64 }
             else
             { value = crate::math::pow(a_rec * (g + a), kGammaF) };
-            unsafe { kGammaToLinearTabS[v as usize] = (value * final_scale + 0.5f64) as u32 }
+            kGammaToLinearTabS[v as usize] = (value * final_scale + 0.5f64) as u32
           };
           v = v.wrapping_add(1i32)
         }
       };
-      unsafe { kGammaToLinearTabS[1i32.wrapping_shl(10u32).wrapping_add(1i32) as usize] =
-          kGammaToLinearTabS[1i32.wrapping_shl(10u32) as usize] }
+      kGammaToLinearTabS[1i32.wrapping_shl(10u32).wrapping_add(1i32) as usize] =
+          kGammaToLinearTabS[1i32.wrapping_shl(10u32) as usize]
     };
     {
       let scale: f64 = 1.0f64 / 1i32.wrapping_shl(9u32) as f64;
@@ -1486,15 +1483,15 @@ pub fn SharpYuvInitGammaTables()
             { value = 4.5f64 * g }
             else
             { value = (1.0f64 + a) * crate::math::pow(g, 1.0f64 / kGammaF) - a };
-            unsafe { kLinearToGammaTabS[v as usize] = (final_scale * value + 0.5f64) as u32 }
+            kLinearToGammaTabS[v as usize] = (final_scale * value + 0.5f64) as u32
           };
           v = v.wrapping_add(1i32)
         }
       };
-      unsafe { kLinearToGammaTabS[1i32.wrapping_shl(9u32).wrapping_add(1i32) as usize] =
-          kLinearToGammaTabS[1i32.wrapping_shl(9u32) as usize] }
+      kLinearToGammaTabS[1i32.wrapping_shl(9u32).wrapping_add(1i32) as usize] =
+          kLinearToGammaTabS[1i32.wrapping_shl(9u32) as usize]
     };
-    unsafe { kGammaTablesSOk = 1i32 }
+    kGammaTablesSOk = 1i32
   }
 }
 
@@ -1686,14 +1683,14 @@ pub fn ToLinearSmpte428(gamma: f32) -> f32
 pub fn ToLinearSrgb(v: u16, bit_depth: i32) -> u32
 {
   let shift: i32 = 10i32.wrapping_sub(bit_depth);
-  if shift > 0i32 { return unsafe { kGammaToLinearTabS[(v as i32).wrapping_shl(shift as u32) as usize] } };
-  return FixedPointInterpolation(v as i32, unsafe { &kGammaToLinearTabS }, 0i32.wrapping_sub(shift), 0i32)
+  if shift > 0i32 { return kGammaToLinearTabS[(v as i32).wrapping_shl(shift as u32) as usize] };
+  return FixedPointInterpolation(v as i32, &kGammaToLinearTabS, 0i32.wrapping_sub(shift), 0i32)
 }
 
 pub const kGammaF: f64 = 1.0f64 / 0.45f64;
 
 pub static mut  kGammaTablesSOk: i32 = 0i32;
 
-pub static mut kGammaToLinearTabS: [u32; 1026] = [0u32; 1026usize];
+pub const kGammaToLinearTabS: [u32; 1026] = [0u32; 1026usize];
 
-pub static mut kLinearToGammaTabS: [u32; 514] = [0u32; 514usize];
+pub const kLinearToGammaTabS: [u32; 514] = [0u32; 514usize];
