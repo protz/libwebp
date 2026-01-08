@@ -24,6 +24,8 @@
 #include "sharpyuv/sharpyuv_gamma.h"
 #include "src/webp/types.h"
 
+#include <stdio.h>
+
 //------------------------------------------------------------------------------
 
 int SharpYuvGetVersion(void) { return SHARPYUV_VERSION; }
@@ -75,10 +77,12 @@ static int RGBToGray(int64_t r, int64_t g, int64_t b) {
 static uint32_t ScaleDown(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
                           int bit_depth,
                           SharpYuvTransferFunctionType transfer_type) {
+  printf("%d, %d, %d, %d\n", a, b, c, d);
   const uint32_t A = SharpYuvGammaToLinear(a, bit_depth, transfer_type);
   const uint32_t B = SharpYuvGammaToLinear(b, bit_depth, transfer_type);
   const uint32_t C = SharpYuvGammaToLinear(c, bit_depth, transfer_type);
   const uint32_t D = SharpYuvGammaToLinear(d, bit_depth, transfer_type);
+  printf("%d, %d, %d, %d\n", A, B, C, D);
   return SharpYuvLinearToGamma((A + B + C + D + 2) >> 2, bit_depth,
                                transfer_type);
 }
@@ -88,6 +92,10 @@ static WEBP_INLINE void UpdateW(const fixed_y_t* src, fixed_y_t* dst, int w,
                                 SharpYuvTransferFunctionType transfer_type) {
   int i = 0;
   do {
+    printf("UpdateW %d %u %u %u\n", i,
+        src[0 * w + i],
+        src[1 * w + i],
+        src[2 * w + i]);
     const uint32_t R =
         SharpYuvGammaToLinear(src[0 * w + i], bit_depth, transfer_type);
     const uint32_t G =
@@ -114,6 +122,7 @@ static void UpdateChroma(const fixed_y_t* src1, const fixed_y_t* src2,
         ScaleDown(src1[4 * uv_w + 0], src1[4 * uv_w + 1], src2[4 * uv_w + 0],
                   src2[4 * uv_w + 1], bit_depth, transfer_type);
     const int W = RGBToGray(r, g, b);
+    printf("UpdateChroma %d %d %d %d\n", r, g, b, W);
     dst[0 * uv_w] = (fixed_t)(r - W);
     dst[1 * uv_w] = (fixed_t)(g - W);
     dst[2 * uv_w] = (fixed_t)(b - W);
@@ -143,7 +152,9 @@ static WEBP_INLINE fixed_y_t Filter2(int A, int B, int W0, int bit_depth) {
 //------------------------------------------------------------------------------
 
 static WEBP_INLINE int Shift(int v, int shift) {
-  return (shift >= 0) ? (v << shift) : (v >> -shift);
+  int r = (shift >= 0) ? (v << shift) : (v >> -shift);
+  // printf("Shift %d %d %d\n", v, shift, r);
+  return r;
 }
 
 static void ImportOneRow(const uint8_t* const r_ptr, const uint8_t* const g_ptr,
@@ -187,6 +198,7 @@ static void InterpolateTwoRows(const fixed_y_t* const best_y,
     // special boundary case for i==0
     out1[0] = Filter2(cur_uv[0], prev_uv[0], best_y[0], bit_depth);
     out2[0] = Filter2(cur_uv[0], next_uv[0], best_y[w], bit_depth);
+    printf("InterpolateTwoRows %d %d %d %d %d\n", out1[0], out2[0], uv_w, len, k);
 
     SharpYuvFilterRow(cur_uv, prev_uv, len, best_y + 0 + 1, out1 + 1,
                       bit_depth);
@@ -199,6 +211,11 @@ static void InterpolateTwoRows(const fixed_y_t* const best_y,
                             best_y[w - 1 + 0], bit_depth);
       out2[w - 1] = Filter2(cur_uv[uv_w - 1], next_uv[uv_w - 1],
                             best_y[w - 1 + w], bit_depth);
+      printf("w & 1 == 0 %d %d\n", 
+        Filter2(cur_uv[uv_w - 1], prev_uv[uv_w - 1],
+              best_y[w - 1 + 0], bit_depth),
+        Filter2(cur_uv[uv_w - 1], next_uv[uv_w - 1],
+                            best_y[w - 1 + w], bit_depth));
     }
     out1 += w;
     out2 += w;
@@ -213,6 +230,7 @@ static WEBP_INLINE int RGBToYUVComponent(int r, int g, int b,
   const int srounder = 1 << (YUV_FIX + sfix - 1);
   const int luma =
       coeffs[0] * r + coeffs[1] * g + coeffs[2] * b + coeffs[3] + srounder;
+  // printf("%d\n", (luma >> (YUV_FIX + sfix)));
   return (luma >> (YUV_FIX + sfix));
 }
 
@@ -356,27 +374,43 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
   assert(sizeof(fixed_y_t) == sizeof(fixed_t));
 #endif
 
+  size_t tmp_buffer_len = tmp_buffer_size + best_y_base_size + target_y_base_size + best_rgb_y_size + best_uv_base_size + target_uv_base_size + best_rgb_uv_size;
+  printf("tmp_buffer: [");
+  for (int i = 0; i < tmp_buffer_len; ++i)
+    printf("%d%s", tmp_buffer[i], i+1 == tmp_buffer_len ? "" : ", ");
+  printf("]\n");
+
   // Import RGB samples to W/RGB representation.
   for (j = 0; j < height; j += 2) {
     const int is_last_row = (j == height - 1);
     fixed_y_t* const src1 = tmp_buffer0 + 0 * w;
     fixed_y_t* const src2 = tmp_buffer0 + 3 * w;
+    printf("src1[7] #1 %d j=%d\n", src1[7], j);
 
     // prepare two rows of input
     ImportOneRow(r_ptr, g_ptr, b_ptr, rgb_step, rgb_bit_depth, width, src1);
+    printf("src1[7] #2 %d j=%d\n", src1[7], j);
     if (!is_last_row) {
       ImportOneRow(r_ptr + rgb_stride, g_ptr + rgb_stride, b_ptr + rgb_stride,
                    rgb_step, rgb_bit_depth, width, src2);
     } else {
       memcpy(src2, src1, 3 * w * sizeof(*src2));
     }
+    printf("src1[7] #3 %d j=%d\n", src1[7], j);
     StoreGray(src1, best_y + 0, w);
+    printf("src1[7] #4 %d j=%d\n", src1[7], j);
     StoreGray(src2, best_y + w, w);
+    printf("src1[7] #5 %d j=%d\n", src1[7], j);
 
+    printf("src1: %d %d %d\n", src1[0*w+7], src1[1*w+7], src1[2*w+7]);
     UpdateW(src1, target_y, w, y_bit_depth, transfer_type);
+    printf("src2: %d %d %d\n", src2[0*w+7], src2[1*w+7], src2[2*w+7]);
     UpdateW(src2, target_y + w, w, y_bit_depth, transfer_type);
+    printf("src1[7] #6 %d j=%d\n", src1[7], j);
     UpdateChroma(src1, src2, target_uv, uv_w, y_bit_depth, transfer_type);
+    printf("src1[7] #7 %d j=%d\n", src1[7], j);
     memcpy(best_uv, target_uv, 3 * uv_w * sizeof(*best_uv));
+    printf("src1[7] #8 %d j=%d\n", src1[7], j);
     best_y_ofs += 2 * w;
     best_uv_ofs += 3 * uv_w;
     target_y_ofs += 2 * w;
@@ -385,6 +419,11 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
     g_ptr += 2 * rgb_stride;
     b_ptr += 2 * rgb_stride;
   }
+
+  printf("tmp_buffer: [");
+  for (int i = 0; i < tmp_buffer_len; ++i)
+    printf("%d%s", tmp_buffer[i], i+1 == tmp_buffer_len ? "" : ", ");
+  printf("]\n");
 
   // Iterate and resolve clipping conflicts.
   for (iter = 0; iter < kNumIterations; ++iter) {
@@ -402,23 +441,54 @@ static int DoSharpArgbToYuv(const uint8_t* r_ptr, const uint8_t* g_ptr,
     do {
       fixed_y_t* const src1 = tmp_buffer0 + 0 * w;
       fixed_y_t* const src2 = tmp_buffer0 + 3 * w;
+      // printf("src1[7] #9 %d j=%d\n", src1[7], j);
+
+      printf("tmp_buffer1: [");
+      for (int i = 0; i < tmp_buffer_len; ++i)
+        printf("%d%s", tmp_buffer[i], i+1 == tmp_buffer_len ? "" : ", ");
+      printf("]\n");
       {
         size_t next_uv_ofs = cur_uv_ofs + ((j < h - 2) ? 3 * uv_w : 0);
 #define next_uv (best_uv_base + next_uv_ofs)
+        printf("prev cur next %d %d %d\n", prev_uv[7], cur_uv[7], next_uv[7]);
         InterpolateTwoRows(best_y, prev_uv, cur_uv, next_uv, w, src1, src2,
                            y_bit_depth);
         prev_uv_ofs = cur_uv_ofs;
         cur_uv_ofs = next_uv_ofs;
       }
+      printf("tmp_buffer2: [");
+      for (int i = 0; i < tmp_buffer_len; ++i)
+        printf("%d%s", tmp_buffer[i], i+1 == tmp_buffer_len ? "" : ", ");
+      printf("]\n");
 
+      // printf("src1': %d %d %d\n", src1[0*w+7], src1[1*w+7], src1[2*w+7]);
       UpdateW(src1, best_rgb_y + 0 * w, w, y_bit_depth, transfer_type);
+      // printf("src2': %d %d %d\n", src2[0*w+7], src2[1*w+7], src2[2*w+7]);
       UpdateW(src2, best_rgb_y + 1 * w, w, y_bit_depth, transfer_type);
+      printf("tmp_buffer3: [");
+      for (int i = 0; i < tmp_buffer_len; ++i)
+        printf("%d%s", tmp_buffer[i], i+1 == tmp_buffer_len ? "" : ", ");
+      printf("]\n");
+
       UpdateChroma(src1, src2, best_rgb_uv, uv_w, y_bit_depth, transfer_type);
+      printf("tmp_buffer31: [");
+      for (int i = 0; i < tmp_buffer_len; ++i)
+        printf("%d%s", tmp_buffer[i], i+1 == tmp_buffer_len ? "" : ", ");
+      printf("]\n");
 
       // update two rows of Y and one row of RGB
       diff_y_sum +=
           SharpYuvUpdateY(target_y, best_rgb_y, best_y, 2 * w, y_bit_depth);
+      printf("tmp_buffer32: [");
+      for (int i = 0; i < tmp_buffer_len; ++i)
+        printf("%d%s", tmp_buffer[i], i+1 == tmp_buffer_len ? "" : ", ");
+      printf("]\n");
+
       SharpYuvUpdateRGB(target_uv, best_rgb_uv, best_uv, 3 * uv_w);
+      printf("tmp_buffer4: [");
+      for (int i = 0; i < tmp_buffer_len; ++i)
+        printf("%d%s", tmp_buffer[i], i+1 == tmp_buffer_len ? "" : ", ");
+      printf("]\n");
 
       best_y_ofs += 2 * w;
       best_uv_ofs += 3 * uv_w;

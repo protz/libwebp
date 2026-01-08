@@ -30,6 +30,9 @@ static uint32_t kLinearToGammaTabS[LINEAR_TO_GAMMA_TAB_SIZE + 2];
 static const double kGammaF = 1. / 0.45;
 #define GAMMA_TO_LINEAR_BITS 16
 
+#include <stdio.h>
+#include <stdlib.h>
+
 static volatile int kGammaTablesSOk = 0;
 void SharpYuvInitGammaTables(void) {
 #ifndef SCYLLA
@@ -79,13 +82,18 @@ void SharpYuvInitGammaTables(void) {
   }
 }
 
+#include <stdio.h>
+
 static WEBP_INLINE int Shift(int v, int shift) {
-  return (shift >= 0) ? (v << shift) : (v >> -shift);
+  int r = (shift >= 0) ? (v << shift) : (v >> -shift);
+  // printf("Shift %d %d %d\n", v, shift, r);
+  return r;
 }
 
 static WEBP_INLINE uint32_t FixedPointInterpolation(int v, uint32_t* tab,
                                                     int tab_pos_shift_right,
                                                     int tab_value_shift) {
+  printf("FixedPointInterpolation %d %d %d %d\n", v, tab[0], tab_pos_shift_right, tab_value_shift);
   const uint32_t tab_pos = Shift(v, -tab_pos_shift_right);
   // fractional part, in 'tab_pos_shift' fixed-point precision
   const uint32_t x = v - (tab_pos << tab_pos_shift_right);  // fractional part
@@ -97,10 +105,12 @@ static WEBP_INLINE uint32_t FixedPointInterpolation(int v, uint32_t* tab,
   const int half =
       (tab_pos_shift_right > 0) ? 1 << (tab_pos_shift_right - 1) : 0;
   const uint32_t result = v0 + ((v2 + half) >> tab_pos_shift_right);
+  printf("%d %d %d %d %d %d %d\n", tab_pos, x, v0, v1, v2, half, result); 
   return result;
 }
 
 static uint32_t ToLinearSrgb(uint16_t v, int bit_depth) {
+  printf("ToLinearSrgb %d, %d\n", v, bit_depth);
   const int shift = GAMMA_TO_LINEAR_TAB_BITS - bit_depth;
   if (shift > 0) {
     return kGammaToLinearTabS[v << shift];

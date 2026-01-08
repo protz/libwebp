@@ -15,6 +15,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "sharpyuv/sharpyuv_cpu.h"
 #include "src/dsp/cpu.h"
@@ -32,10 +33,12 @@ static uint64_t SharpYuvUpdateY_C(const uint16_t* ref, const uint16_t* src,
   int i;
   const int max_y = (1 << bit_depth) - 1;
   for (i = 0; i < len; ++i) {
+    printf("updatey1 %d %d %d %"PRIu64"\n", ref[i], src[i], dst[i], diff);
     const int diff_y = ref[i] - src[i];
     const int new_y = (int)dst[i] + diff_y;
     dst[i] = clip(new_y, max_y);
     diff += (uint64_t)abs(diff_y);
+    printf("updatey %d %d %d %"PRIu64"\n", diff_y, new_y, dst[i], diff);
   }
   return diff;
 }
@@ -45,6 +48,7 @@ static void SharpYuvUpdateRGB_C(const int16_t* ref, const int16_t* src,
   int i;
   for (i = 0; i < len; ++i) {
     const int diff_uv = ref[i] - src[i];
+    printf("diff_uv %d\n", diff_uv);
     dst[i] += diff_uv;
   }
 }
@@ -59,6 +63,9 @@ static void SharpYuvFilterRow_C(const int16_t* A, const int16_t* B, int len,
     const int v1 = (A[1] * 9 + A[0] * 3 + B[1] * 3 + B[0] + 8) >> 4;
     out[2 * i + 0] = clip(best_y[2 * i + 0] + v0, max_y);
     out[2 * i + 1] = clip(best_y[2 * i + 1] + v1, max_y);
+    printf("FilterRowC %d %d %d %d %d %d %d %d %d\n", i, A[0], A[1], B[0], B[1], v0, v1, 
+      clip(best_y[2 * i + 0] + v0, max_y),
+      clip(best_y[2 * i + 1] + v1, max_y));
   }
 }
 
@@ -76,6 +83,7 @@ void SharpYuvUpdateRGB(const int16_t* src, const int16_t* ref, int16_t* dst, int
 
 void SharpYuvFilterRow(const int16_t* A, const int16_t* B, int len,
                           const uint16_t* best_y, uint16_t* out, int bit_depth) {
+  printf("SharpYuvFilterRow %d\n", len);
   SharpYuvFilterRow_C(A, B, len, best_y, out, bit_depth);
 }
 
