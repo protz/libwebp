@@ -501,9 +501,10 @@ int SharpYuvConvert(const void* r_ptr, const void* g_ptr, const void* b_ptr,
                     void* y_ptr, int y_stride, void* u_ptr, int u_stride,
                     void* v_ptr, int v_stride, int yuv_bit_depth, int width,
                     int height, const SharpYuvConversionMatrix* yuv_matrix) {
-  SharpYuvOptions options;
-  options.yuv_matrix = yuv_matrix;
-  options.transfer_type = kSharpYuvTransferFunctionSrgb;
+  SharpYuvOptions options = {
+    .yuv_matrix = yuv_matrix,
+    .transfer_type = kSharpYuvTransferFunctionSrgb
+  };
   return SharpYuvConvertWithOptions(
       r_ptr, g_ptr, b_ptr, rgb_step, rgb_stride, rgb_bit_depth, y_ptr, y_stride,
       u_ptr, u_stride, v_ptr, v_stride, yuv_bit_depth, width, height, &options);
@@ -519,8 +520,7 @@ int SharpYuvOptionsInitInternal(const SharpYuvConversionMatrix* yuv_matrix,
       (major != SHARPYUV_VERSION_MAJOR)) {
     return 0;
   }
-  options->yuv_matrix = yuv_matrix;
-  options->transfer_type = kSharpYuvTransferFunctionSrgb;
+  *options = (SharpYuvOptions){ .yuv_matrix = yuv_matrix, .transfer_type = kSharpYuvTransferFunctionSrgb };
   return 1;
 }
 
