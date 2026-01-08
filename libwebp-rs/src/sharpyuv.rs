@@ -38,7 +38,7 @@ pub fn ConvertWRGBToYUV(
     {
       i = 0i32;
       while
-          {
+      {
         {
           let off: i32 = i.wrapping_shr(1u32);
           let W: i32 = best_y[i as usize] as i32;
@@ -54,21 +54,22 @@ pub fn ConvertWRGBToYUV(
           else
           { crate::scylla_glue::scylla_u16_of_u8_mut(y_ptr)[i as usize] = clip(y, yuv_max) }
         };
-        ({
+        {
           i = i.wrapping_add(1i32);
           i
-        })
+        }
         <
         width
-      } { () };
+      }
+      { () };
       best_y = &best_y[w as usize..];
       best_uv = &best_uv[(j & 1i32).wrapping_mul(3i32).wrapping_mul(uv_w) as usize..];
       y_ptr = &mut y_ptr[y_stride as usize..]
     };
-    ({
+    {
       j = j.wrapping_add(1i32);
       j
-    })
+    }
     <
     height
   }
@@ -98,10 +99,10 @@ pub fn ConvertWRGBToYUV(
             crate::scylla_glue::scylla_u16_of_u8_mut(v_ptr)[i as usize] = clip(v, yuv_max)
           }
         };
-        ({
+        {
           i = i.wrapping_add(1i32);
           i
-        })
+        }
         <
         uv_w
       }
@@ -110,10 +111,10 @@ pub fn ConvertWRGBToYUV(
       u_ptr = &mut u_ptr[u_stride as usize..];
       v_ptr = &mut v_ptr[v_stride as usize..]
     };
-    ({
+    {
       j = j.wrapping_add(1i32);
       j
-    })
+    }
     <
     uv_h
   }
@@ -166,7 +167,6 @@ pub fn DoSharpArgbToYuv(
           )
           as
           usize].into_boxed_slice();
-  let tmp_buffer_debug = unsafe { std::slice::from_raw_parts(tmp_buffer.as_ptr(), tmp_buffer.len()) };
   let tmp_buffer0: (&mut [u16], &mut [u16]) = tmp_buffer.split_at_mut(0usize);
   let best_y_base: (&mut [u16], &mut [u16]) =
       (tmp_buffer0.1).split_at_mut(tmp_buffer_size as usize);
@@ -227,9 +227,6 @@ pub fn DoSharpArgbToYuv(
   let mut target_uv_ofs: usize = 0usize;
   let diff_y_threshold: u64 = (3.0f64 * w as f64 * h as f64) as u64;
   let mut ok: i32;
-
-  println!("tmp_buffer: {:?}", tmp_buffer_debug);
-
   {
     j = 0i32;
     while
@@ -240,9 +237,7 @@ pub fn DoSharpArgbToYuv(
         let src1: (&mut [u16], &mut [u16]) =
             (best_y_base.0).split_at_mut(0i32.wrapping_mul(w) as usize);
         let src2: (&mut [u16], &mut [u16]) = (src1.1).split_at_mut(3i32.wrapping_mul(w) as usize);
-        println!("src1[7] #1 {} j={}", src2.0[7], j);
         ImportOneRow(r_ptr, g_ptr, b_ptr, rgb_step, rgb_bit_depth, width, src2.0);
-        println!("src1[7] #2 {} j={}", src2.0[7], j);
         if is_last_row == 0i32
         {
           ImportOneRow(
@@ -261,15 +256,9 @@ pub fn DoSharpArgbToYuv(
             &src2.0[0usize..3i32.wrapping_mul(w) as usize]
           )
         };
-        println!("src1[7] #3 {} j={}", src2.0[7], j);
         StoreGray(src2.0, &mut target_y_base.0[best_y_ofs.wrapping_add(0usize)..], w);
-        println!("src1[7] #4 {} j={}", src2.0[7], j);
         StoreGray(src2.1, &mut target_y_base.0[best_y_ofs.wrapping_add(w as usize)..], w);
-        println!("src1[7] #5 {} j={}", src2.0[7], j);
-
-        println!("src1: {} {} {}", src2.0[0+7], src2.0[w as usize+7], src2.0[2*w as usize+7]);
         UpdateW(src2.0, &mut best_rgb_y.0[target_y_ofs..], w, y_bit_depth, transfer_type);
-        println!("src2: {} {} {}", src2.1[0+7], src2.1[w as usize+7], src2.1[2*w as usize+7]);
         UpdateW(
           src2.1,
           &mut best_rgb_y.0[target_y_ofs.wrapping_add(w as usize)..],
@@ -277,7 +266,6 @@ pub fn DoSharpArgbToYuv(
           y_bit_depth,
           transfer_type
         );
-        println!("src1[7] #6 {} j={}", src2.0[7], j);
         UpdateChroma(
           src2.0,
           src2.1,
@@ -286,11 +274,9 @@ pub fn DoSharpArgbToYuv(
           y_bit_depth,
           transfer_type
         );
-        println!("src1[7] #7 {} j={}", src2.0[7], j);
         ((&mut best_uv_base[best_uv_ofs..])[0usize..3i32.wrapping_mul(uv_w) as usize]).copy_from_slice(
           &(&target_uv_base[target_uv_ofs..])[0usize..3i32.wrapping_mul(uv_w) as usize]
         );
-        println!("src1[7] #8 {} j={}", src2.0[7], j);
         best_y_ofs = best_y_ofs.wrapping_add(2i32.wrapping_mul(w) as usize);
         best_uv_ofs = best_uv_ofs.wrapping_add(3i32.wrapping_mul(uv_w) as usize);
         target_y_ofs = target_y_ofs.wrapping_add(2i32.wrapping_mul(w) as usize);
@@ -302,9 +288,6 @@ pub fn DoSharpArgbToYuv(
       j = j.wrapping_add(2i32)
     }
   };
-
-  println!("tmp_buffer: {:?}", tmp_buffer_debug);
-
   {
     iter = 0i32;
     while
@@ -326,17 +309,11 @@ pub fn DoSharpArgbToYuv(
                 (best_y_base.0).split_at_mut(0i32.wrapping_mul(w) as usize);
             let src2: (&mut [u16], &mut [u16]) =
                 (src1.1).split_at_mut(3i32.wrapping_mul(w) as usize);
-            // println!("src1[7] #9 {} j={}", src2.0[7], j);
-            println!("tmp_buffer1: {:?}", tmp_buffer_debug);
             {
               let next_uv_ofs: usize =
                   cur_uv_ofs.wrapping_add(
                     if j < h.wrapping_sub(2i32) { 3i32.wrapping_mul(uv_w) } else { 0i32 } as usize
                   );
-              println!("prev cur next {} {} {}",
-                  best_uv_base[prev_uv_ofs+7],
-                  best_uv_base[cur_uv_ofs+7],
-                  best_uv_base[next_uv_ofs+7]);
               InterpolateTwoRows(
                 &target_y_base.0[best_y_ofs..],
                 &best_uv_base[prev_uv_ofs..],
@@ -350,8 +327,6 @@ pub fn DoSharpArgbToYuv(
               prev_uv_ofs = cur_uv_ofs;
               cur_uv_ofs = next_uv_ofs
             };
-            println!("tmp_buffer2: {:?}", tmp_buffer_debug);
-            // println!("src1': {} {} {}", src2.0[0+7], src2.0[w as usize+7], src2.0[2*w as usize+7]);
             UpdateW(
               src2.0,
               &mut best_uv_base1.0[0i32.wrapping_mul(w) as usize..],
@@ -359,7 +334,6 @@ pub fn DoSharpArgbToYuv(
               y_bit_depth,
               transfer_type
             );
-            // println!("src2': {} {} {}", src2.1[0+7], src2.1[w as usize+7], src2.1[2*w as usize+7]);
             UpdateW(
               src2.1,
               &mut best_uv_base1.0[1i32.wrapping_mul(w) as usize..],
@@ -367,9 +341,7 @@ pub fn DoSharpArgbToYuv(
               y_bit_depth,
               transfer_type
             );
-            println!("tmp_buffer3: {:?}", tmp_buffer_debug);
             UpdateChroma(src2.0, src2.1, best_rgb_uv, uv_w, y_bit_depth, transfer_type);
-            println!("tmp_buffer31: {:?}", tmp_buffer_debug);
             diff_y_sum =
                 diff_y_sum.wrapping_add(
                   SharpYuvUpdateY(
@@ -380,14 +352,12 @@ pub fn DoSharpArgbToYuv(
                     y_bit_depth
                   )
                 );
-            println!("tmp_buffer32: {:?}", tmp_buffer_debug);
             SharpYuvUpdateRGB(
               &target_uv_base[target_uv_ofs..],
               best_rgb_uv,
               &mut best_uv_base[best_uv_ofs..],
               3i32.wrapping_mul(uv_w)
             );
-            println!("tmp_buffer4: {:?}", tmp_buffer_debug);
             best_y_ofs = best_y_ofs.wrapping_add(2i32.wrapping_mul(w) as usize);
             best_uv_ofs = best_uv_ofs.wrapping_add(3i32.wrapping_mul(uv_w) as usize);
             target_y_ofs = target_y_ofs.wrapping_add(2i32.wrapping_mul(w) as usize);
@@ -478,10 +448,10 @@ pub fn ImportOneRow(
             Shift(crate::scylla_glue::scylla_u16_of_u8(b_ptr)[off as usize] as i32, shift) as u16
       }
     };
-    ({
+    {
       i = i.wrapping_add(1i32);
       i
-    })
+    }
     <
     pic_width
   }
@@ -524,7 +494,6 @@ pub fn InterpolateTwoRows(
         Filter2(cur_uv[0usize] as i32, prev_uv[0usize] as i32, best_y[0usize] as i32, bit_depth);
     out2[0usize] =
         Filter2(cur_uv[0usize] as i32, next_uv[0usize] as i32, best_y[w as usize] as i32, bit_depth);
-    println!("InterpolateTwoRows {} {} {} {} {}", out1[0], out2[0], uv_w, len, k);
     SharpYuvFilterRow(
       cur_uv,
       prev_uv,
@@ -556,20 +525,7 @@ pub fn InterpolateTwoRows(
             next_uv[uv_w.wrapping_sub(1i32) as usize] as i32,
             best_y[w.wrapping_sub(1i32).wrapping_add(w) as usize] as i32,
             bit_depth
-          );
-      println!("w & 1 == 0 {} {}", 
-          Filter2(
-            cur_uv[uv_w.wrapping_sub(1i32) as usize] as i32,
-            prev_uv[uv_w.wrapping_sub(1i32) as usize] as i32,
-            best_y[w.wrapping_sub(1i32).wrapping_add(0i32) as usize] as i32,
-            bit_depth
-          ),
-          Filter2(
-            cur_uv[uv_w.wrapping_sub(1i32) as usize] as i32,
-            next_uv[uv_w.wrapping_sub(1i32) as usize] as i32,
-            best_y[w.wrapping_sub(1i32).wrapping_add(w) as usize] as i32,
-            bit_depth
-          ));
+          )
     };
     out1 = &mut out1[w as usize..];
     out2 = &mut out2[w as usize..];
@@ -595,8 +551,7 @@ pub fn RGBToGray(r: i64, g: i64, b: i64) -> i32
       (coeffs[0usize]).wrapping_mul(r).wrapping_add((coeffs[1usize]).wrapping_mul(g)).wrapping_add(
         (coeffs[2usize]).wrapping_mul(b)
       ).wrapping_add(coeffs[3usize]).wrapping_add(srounder);
-  let r = luma.wrapping_shr(16i32.wrapping_add(sfix) as u32);
-  r
+  return luma.wrapping_shr(16i32.wrapping_add(sfix) as u32)
 }
 
 pub fn ScaleDown(
@@ -609,12 +564,10 @@ pub fn ScaleDown(
 ) ->
     u32
 {
-  println!("{}, {}, {}, {}", a, b, c, d);
   let A: u32 = SharpYuvGammaToLinear(a, bit_depth, transfer_type);
   let B: u32 = SharpYuvGammaToLinear(b, bit_depth, transfer_type);
   let C: u32 = SharpYuvGammaToLinear(c, bit_depth, transfer_type);
   let D: u32 = SharpYuvGammaToLinear(d, bit_depth, transfer_type);
-  println!("{}, {}, {}, {}", A, B, C, D);
   return
   SharpYuvLinearToGamma(
     A.wrapping_add(B).wrapping_add(C).wrapping_add(D).wrapping_add(2u32).wrapping_shr(2u32),
@@ -871,10 +824,10 @@ pub fn StoreGray(rgb: &[u16], y: &mut [u16], w: i32)
         )
         as
         u16;
-    ({
+    {
       i = i.wrapping_add(1i32);
       i
-    })
+    }
     <
     w
   }
@@ -928,7 +881,6 @@ pub fn UpdateChroma(
           as
           i32;
       let W: i32 = RGBToGray(r as i64, g as i64, b as i64);
-      println!("UpdateChroma {} {} {} {}", r, g, b, W);
       dst[0i32.wrapping_mul(uv_w) as usize] = r.wrapping_sub(W) as i16;
       dst[1i32.wrapping_mul(uv_w) as usize] = g.wrapping_sub(W) as i16;
       dst[2i32.wrapping_mul(uv_w) as usize] = b.wrapping_sub(W) as i16;
@@ -936,10 +888,10 @@ pub fn UpdateChroma(
       src1 = &src1[2usize..];
       src2 = &src2[2usize..]
     };
-    ({
+    {
       i = i.wrapping_add(1i32);
       i
-    })
+    }
     <
     uv_w
   }
@@ -958,11 +910,6 @@ pub fn UpdateChroma(
   while
   {
     {
-      println!("UpdateW {} {} {} {}", i,
-          src[0i32.wrapping_mul(w).wrapping_add(i) as usize],
-          src[1i32.wrapping_mul(w).wrapping_add(i) as usize],
-          src[2i32.wrapping_mul(w).wrapping_add(i) as usize]
-      );
       let R: u32 =
           SharpYuvGammaToLinear(
             src[0i32.wrapping_mul(w).wrapping_add(i) as usize],
@@ -984,10 +931,10 @@ pub fn UpdateChroma(
       let Y: u32 = RGBToGray(R as i64, G as i64, B as i64) as u32;
       dst[i as usize] = SharpYuvLinearToGamma(Y, bit_depth, transfer_type) as u16
     };
-    ({
+    {
       i = i.wrapping_add(1i32);
       i
-    })
+    }
     <
     w
   }
@@ -1165,9 +1112,7 @@ pub fn SharpYuvFilterRow(
   out: &mut [u16],
   bit_depth: i32
 )
-{
-  println!("SharpYuvFilterRow {}", len);
-  SharpYuvFilterRow_C(A, B, len, best_y, out, bit_depth) }
+{ SharpYuvFilterRow_C(A, B, len, best_y, out, bit_depth) }
 
 pub fn SharpYuvFilterRow_C(
   mut A: &[i16],
@@ -1210,25 +1155,7 @@ pub fn SharpYuvFilterRow_C(
             as
             i32,
             max_y
-          );
-      println!("FilterRowC {} {} {} {} {} {} {} {} {}",
-          i, A[0], A[1], B[0], B[1], v0, v1,
-          clip(
-            (best_y[2i32.wrapping_mul(i).wrapping_add(0i32) as usize] as u32).wrapping_add(
-              v0 as u32
-            )
-            as
-            i32,
-            max_y
-          ),
-          clip(
-            (best_y[2i32.wrapping_mul(i).wrapping_add(1i32) as usize] as u32).wrapping_add(
-              v1 as u32
-            )
-            as
-            i32,
-            max_y
-          ));
+          )
     };
     i = i.wrapping_add(1i32);
     A = &A[1usize..];
@@ -1249,7 +1176,6 @@ pub fn SharpYuvUpdateRGB_C(r#ref: &[i16], src: &[i16], dst: &mut [i16], len: i32
   {
     {
       let diff_uv: i32 = (r#ref[i as usize]).wrapping_sub(src[i as usize]) as i32;
-      println!("diff_uv {}", diff_uv);
       dst[i as usize] = (dst[i as usize] as i32).wrapping_add(diff_uv) as i16
     };
     i = i.wrapping_add(1i32)
@@ -1272,12 +1198,10 @@ pub fn SharpYuvUpdateY_C(r#ref: &[u16], src: &[u16], dst: &mut [u16], len: i32, 
     i < len
     {
       {
-        println!("updatey1 {} {} {} {}", r#ref[i as usize], src[i as usize], dst[i as usize], diff);
-        let diff_y: i32 = (r#ref[i as usize] as i32).wrapping_sub(src[i as usize] as i32) as i32;
+        let diff_y: i32 = (r#ref[i as usize]).wrapping_sub(src[i as usize]) as i32;
         let new_y: i32 = (dst[i as usize] as i32).wrapping_add(diff_y);
         dst[i as usize] = clip(new_y, max_y);
-        diff = diff.wrapping_add(crate::_stdlib::abs(diff_y) as u64);
-        println!("updatey {} {} {} {}", diff_y, new_y, dst[i as usize], diff);
+        diff = diff.wrapping_add(crate::_stdlib::abs(diff_y) as u64)
       };
       i = i.wrapping_add(1i32)
     }
@@ -1296,8 +1220,6 @@ pub fn clip(v: i32, max: i32) -> u16
 ) ->
     u32
 {
-  println!("FixedPointInterpolation {} {} {} {}", v, tab[0], tab_pos_shift_right, tab_value_shift);
-  // println!("{:?}", tab);
   let tab_pos: u32 = Shift(v, 0i32.wrapping_sub(tab_pos_shift_right)) as u32;
   let x: u32 = (v as u32).wrapping_sub(tab_pos.wrapping_shl(tab_pos_shift_right as u32));
   let v0: u32 = Shift(tab[tab_pos.wrapping_add(0u32) as usize] as i32, tab_value_shift) as u32;
@@ -1310,7 +1232,6 @@ pub fn clip(v: i32, max: i32) -> u16
       { 0i32 };
   let result: u32 =
       v0.wrapping_add(v2.wrapping_add(half as u32).wrapping_shr(tab_pos_shift_right as u32));
-  println!("{} {} {} {} {} {} {}", tab_pos, x, v0, v1, v2, half, result);
   return result
 }
 
@@ -1469,9 +1390,7 @@ pub fn SharpYuvGammaToLinear(
   let mut v_float: f32;
   let mut linear: f32;
   if transfer_type == SharpYuvTransferFunctionType::kSharpYuvTransferFunctionSrgb
-  {
-    return ToLinearSrgb(v, bit_depth)
-  };
+  { return ToLinearSrgb(v, bit_depth) };
   v_float = v as f32 / 1i32.wrapping_shl(bit_depth as u32).wrapping_sub(1i32) as f32;
   match transfer_type
   {
@@ -1528,13 +1447,13 @@ pub fn SharpYuvInitGammaTables()
             { value = g / 4.5f64 }
             else
             { value = crate::math::pow(a_rec * (g + a), kGammaF) };
-            unsafe { kGammaToLinearTabS[v as usize] = (value * final_scale + 0.5f64) as u32 };
+            (unsafe { kGammaToLinearTabS })[v as usize] = (value * final_scale + 0.5f64) as u32
           };
           v = v.wrapping_add(1i32)
         }
       };
-      unsafe { kGammaToLinearTabS[1i32.wrapping_shl(10u32).wrapping_add(1i32) as usize] =
-          kGammaToLinearTabS[1i32.wrapping_shl(10u32) as usize] }
+      (unsafe { kGammaToLinearTabS })[1i32.wrapping_shl(10u32).wrapping_add(1i32) as usize] =
+          (unsafe { kGammaToLinearTabS })[1i32.wrapping_shl(10u32) as usize]
     };
     {
       let scale: f64 = 1.0f64 / 1i32.wrapping_shl(9u32) as f64;
@@ -1550,13 +1469,13 @@ pub fn SharpYuvInitGammaTables()
             { value = 4.5f64 * g }
             else
             { value = (1.0f64 + a) * crate::math::pow(g, 1.0f64 / kGammaF) - a };
-            unsafe { kLinearToGammaTabS[v as usize] = (final_scale * value + 0.5f64) as u32 }
+            (unsafe { kLinearToGammaTabS })[v as usize] = (final_scale * value + 0.5f64) as u32
           };
           v = v.wrapping_add(1i32)
         }
       };
-      unsafe { kLinearToGammaTabS[1i32.wrapping_shl(9u32).wrapping_add(1i32) as usize] =
-          kLinearToGammaTabS[1i32.wrapping_shl(9u32) as usize] }
+      (unsafe { kLinearToGammaTabS })[1i32.wrapping_shl(9u32).wrapping_add(1i32) as usize] =
+          (unsafe { kLinearToGammaTabS })[1i32.wrapping_shl(9u32) as usize]
     };
     unsafe { kGammaTablesSOk = 1i32 }
   }
@@ -1609,13 +1528,11 @@ pub fn SharpYuvLinearToGamma(
 
 #[inline] pub fn Shift(v: i32, shift: i32) -> i32
 {
-  let r =
+  return
   if shift >= 0i32
   { v.wrapping_shl(shift as u32) }
   else
-  { v.wrapping_shr(0i32.wrapping_sub(shift) as u32) };
-  // println!("Shift {} {} {}", v, shift, r);
-  r
+  { v.wrapping_shr(0i32.wrapping_sub(shift) as u32) }
 }
 
 pub fn ToLinear470Bg(gamma: f32) -> f32
@@ -1749,19 +1666,11 @@ pub fn ToLinearSmpte428(gamma: f32) -> f32
   return Powf(if gamma > 0.0f32 { gamma } else { 0.0f32 }, 2.59999990463f32) / 0.916555285454f32
 }
 
-#[allow(static_mut_refs)]
 pub fn ToLinearSrgb(v: u16, bit_depth: i32) -> u32
 {
-  println!("ToLinearSrgb {}, {}", v, bit_depth);
   let shift: i32 = 10i32.wrapping_sub(bit_depth);
-  if shift > 0i32 {
-    let r2 = unsafe { kGammaToLinearTabS[(v as i32).wrapping_shl(shift as u32) as usize] };
-    // println!("r2 = {}", r2);
-    return r2;
-  };
-  let r1 = FixedPointInterpolation(v as i32, (unsafe { &kGammaToLinearTabS }), 0i32.wrapping_sub(shift), 0i32);
-  // println!("r1 = {}", r1);
-  r1
+  if shift > 0i32 { return (unsafe { kGammaToLinearTabS })[(v as i32).wrapping_shl(shift as u32) as usize] };
+  return FixedPointInterpolation(v as i32, &(unsafe { kGammaToLinearTabS }), 0i32.wrapping_sub(shift), 0i32)
 }
 
 pub const kGammaF: f64 = 1.0f64 / 0.45f64;
