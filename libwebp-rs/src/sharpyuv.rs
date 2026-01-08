@@ -54,10 +54,12 @@ pub fn ConvertWRGBToYUV(
           else
           { crate::scylla_glue::scylla_u16_of_u8_mut(y_ptr)[i as usize] = clip(y, yuv_max) }
         };
-        {
-          i = i.wrapping_add(1i32);
-          i
-        }
+        (
+          {
+            i = i.wrapping_add(1i32);
+            i
+          }
+        )
         <
         width
       }
@@ -66,10 +68,12 @@ pub fn ConvertWRGBToYUV(
       best_uv = &best_uv[(j & 1i32).wrapping_mul(3i32).wrapping_mul(uv_w) as usize..];
       y_ptr = &mut y_ptr[y_stride as usize..]
     };
-    {
-      j = j.wrapping_add(1i32);
-      j
-    }
+    (
+      {
+        j = j.wrapping_add(1i32);
+        j
+      }
+    )
     <
     height
   }
@@ -99,10 +103,12 @@ pub fn ConvertWRGBToYUV(
             crate::scylla_glue::scylla_u16_of_u8_mut(v_ptr)[i as usize] = clip(v, yuv_max)
           }
         };
-        {
-          i = i.wrapping_add(1i32);
-          i
-        }
+        (
+          {
+            i = i.wrapping_add(1i32);
+            i
+          }
+        )
         <
         uv_w
       }
@@ -111,10 +117,12 @@ pub fn ConvertWRGBToYUV(
       u_ptr = &mut u_ptr[u_stride as usize..];
       v_ptr = &mut v_ptr[v_stride as usize..]
     };
-    {
-      j = j.wrapping_add(1i32);
-      j
-    }
+    (
+      {
+        j = j.wrapping_add(1i32);
+        j
+      }
+    )
     <
     uv_h
   }
@@ -448,10 +456,12 @@ pub fn ImportOneRow(
             Shift(crate::scylla_glue::scylla_u16_of_u8(b_ptr)[off as usize] as i32, shift) as u16
       }
     };
-    {
-      i = i.wrapping_add(1i32);
-      i
-    }
+    (
+      {
+        i = i.wrapping_add(1i32);
+        i
+      }
+    )
     <
     pic_width
   }
@@ -604,10 +614,9 @@ pub fn SharpYuvConvert(
 ) ->
     i32
 {
-  let mut options = SharpYuvOptions {
-    yuv_matrix,
-    transfer_type: SharpYuvTransferFunctionType::kSharpYuvTransferFunctionSrgb
-  };
+  let options: SharpYuvOptions =
+      SharpYuvOptions
+      { yuv_matrix, transfer_type: SharpYuvTransferFunctionType::kSharpYuvTransferFunctionSrgb };
   return
   SharpYuvConvertWithOptions(
     r_ptr,
@@ -781,10 +790,9 @@ pub fn SharpYuvOptionsInitInternal<'a, 'b>(
   let minor: i32 = version.wrapping_shr(16u32) & 255i32;
   if false || false || major == 0i32 && major == 0i32 && minor != 4i32 || major != 0i32
   { return 0i32 };
-  options[0] = SharpYuvOptions {
-      yuv_matrix,
-      transfer_type: SharpYuvTransferFunctionType::kSharpYuvTransferFunctionSrgb
-  };
+  options[0usize] =
+      SharpYuvOptions
+      { yuv_matrix, transfer_type: SharpYuvTransferFunctionType::kSharpYuvTransferFunctionSrgb };
   return 1i32
 }
 
@@ -824,10 +832,12 @@ pub fn StoreGray(rgb: &[u16], y: &mut [u16], w: i32)
         )
         as
         u16;
-    {
-      i = i.wrapping_add(1i32);
-      i
-    }
+    (
+      {
+        i = i.wrapping_add(1i32);
+        i
+      }
+    )
     <
     w
   }
@@ -888,10 +898,12 @@ pub fn UpdateChroma(
       src1 = &src1[2usize..];
       src2 = &src2[2usize..]
     };
-    {
-      i = i.wrapping_add(1i32);
-      i
-    }
+    (
+      {
+        i = i.wrapping_add(1i32);
+        i
+      }
+    )
     <
     uv_w
   }
@@ -931,10 +943,12 @@ pub fn UpdateChroma(
       let Y: u32 = RGBToGray(R as i64, G as i64, B as i64) as u32;
       dst[i as usize] = SharpYuvLinearToGamma(Y, bit_depth, transfer_type) as u16
     };
-    {
-      i = i.wrapping_add(1i32);
-      i
-    }
+    (
+      {
+        i = i.wrapping_add(1i32);
+        i
+      }
+    )
     <
     w
   }
@@ -1028,7 +1042,9 @@ pub fn SharpYuvGetConversionMatrix <'a>(matrix_type: SharpYuvMatrixType) ->
     SharpYuvMatrixType::kSharpYuvMatrixRec709Full =>
       return std::slice::from_ref::<SharpYuvConversionMatrix>(&kRec709FullMatrix),
     SharpYuvMatrixType::kSharpYuvMatrixNum => return &[],
+    _ => panic!("Incomplete pattern matching")
   };
+  return &[]
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -1140,30 +1156,32 @@ pub fn SharpYuvFilterRow_C(
           ).wrapping_add(B[0usize] as i32).wrapping_add(8i32).wrapping_shr(4u32);
       out[2i32.wrapping_mul(i).wrapping_add(0i32) as usize] =
           clip(
-            (best_y[2i32.wrapping_mul(i).wrapping_add(0i32) as usize] as u32).wrapping_add(
-              v0 as u32
-            )
-            as
-            i32,
+            (best_y[2i32.wrapping_mul(i).wrapping_add(0i32) as usize] as i32).wrapping_add(v0),
             max_y
           );
       out[2i32.wrapping_mul(i).wrapping_add(1i32) as usize] =
           clip(
-            (best_y[2i32.wrapping_mul(i).wrapping_add(1i32) as usize] as u32).wrapping_add(
-              v1 as u32
-            )
-            as
-            i32,
+            (best_y[2i32.wrapping_mul(i).wrapping_add(1i32) as usize] as i32).wrapping_add(v1),
             max_y
           )
     };
-    i = i.wrapping_add(1i32);
-    A = &A[1usize..];
+    {
+      {
+        i = i.wrapping_add(1i32);
+        let _: i32 = i;
+        ()
+      };
+      A = &A[1usize..];
+      let _: &[i16] = A;
+      ()
+    };
     B = &B[1usize..];
+    let _: &[i16] = B;
+    ()
   }
 }
 
-pub fn SharpYuvInitDsp() { }
+pub fn SharpYuvInitDsp() { () }
 
 pub fn SharpYuvUpdateRGB(src: &[i16], r#ref: &[i16], dst: &mut [i16], len: i32)
 { SharpYuvUpdateRGB_C(src, r#ref, dst, len) }
@@ -1175,7 +1193,7 @@ pub fn SharpYuvUpdateRGB_C(r#ref: &[i16], src: &[i16], dst: &mut [i16], len: i32
   i < len
   {
     {
-      let diff_uv: i32 = (r#ref[i as usize]).wrapping_sub(src[i as usize]) as i32;
+      let diff_uv: i32 = (r#ref[i as usize] as i32).wrapping_sub(src[i as usize] as i32);
       dst[i as usize] = (dst[i as usize] as i32).wrapping_add(diff_uv) as i16
     };
     i = i.wrapping_add(1i32)
@@ -1198,7 +1216,7 @@ pub fn SharpYuvUpdateY_C(r#ref: &[u16], src: &[u16], dst: &mut [u16], len: i32, 
     i < len
     {
       {
-        let diff_y: i32 = (r#ref[i as usize]).wrapping_sub(src[i as usize]) as i32;
+        let diff_y: i32 = (r#ref[i as usize] as i32).wrapping_sub(src[i as usize] as i32);
         let new_y: i32 = (dst[i as usize] as i32).wrapping_add(diff_y);
         dst[i as usize] = clip(new_y, max_y);
         diff = diff.wrapping_add(crate::_stdlib::abs(diff_y) as u64)
@@ -1447,13 +1465,13 @@ pub fn SharpYuvInitGammaTables()
             { value = g / 4.5f64 }
             else
             { value = crate::math::pow(a_rec * (g + a), kGammaF) };
-            (unsafe { kGammaToLinearTabS })[v as usize] = (value * final_scale + 0.5f64) as u32
+            unsafe { kGammaToLinearTabS[v as usize] = (value * final_scale + 0.5f64) as u32 }
           };
           v = v.wrapping_add(1i32)
         }
       };
-      (unsafe { kGammaToLinearTabS })[1i32.wrapping_shl(10u32).wrapping_add(1i32) as usize] =
-          (unsafe { kGammaToLinearTabS })[1i32.wrapping_shl(10u32) as usize]
+      unsafe { kGammaToLinearTabS[1i32.wrapping_shl(10u32).wrapping_add(1i32) as usize] =
+          kGammaToLinearTabS[1i32.wrapping_shl(10u32) as usize] }
     };
     {
       let scale: f64 = 1.0f64 / 1i32.wrapping_shl(9u32) as f64;
