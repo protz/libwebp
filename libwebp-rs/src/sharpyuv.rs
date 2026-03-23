@@ -35,11 +35,11 @@ pub fn ConvertWRGBToYUV(
   let yuv_max: i32 = 1i32.wrapping_shl(yuv_bit_depth as u32).wrapping_sub(1i32);
   best_uv = best_uv_base.1;
   j = 0i32;
-  while
+  loop
   {
     {
       i = 0i32;
-      while
+      loop
       {
         {
           let off: i32 = i.wrapping_shr(1u32);
@@ -56,37 +56,35 @@ pub fn ConvertWRGBToYUV(
           else
           { crate::scylla_glue::scylla_u16_of_u8_mut(y_ptr)[i as usize] = clip(y, yuv_max) }
         };
-        (
-          {
-            i = i.wrapping_add(1i32);
-            i
-          }
-        )
-        <
+        if
+        {
+          i = i.wrapping_add(1i32);
+          i
+        }
+        >=
         width
-      }
-      { () };
+        { break }
+      };
       best_y = &best_y[w as usize..];
       best_uv = &best_uv[(j & 1i32).wrapping_mul(3i32).wrapping_mul(uv_w) as usize..];
       y_ptr = &mut y_ptr[y_stride as usize..]
     };
-    (
-      {
-        j = j.wrapping_add(1i32);
-        j
-      }
-    )
-    <
+    if
+    {
+      j = j.wrapping_add(1i32);
+      j
+    }
+    >=
     height
-  }
-  { () };
+    { break }
+  };
   best_uv = best_uv_base.1;
   j = 0i32;
-  while
+  loop
   {
     {
       i = 0i32;
-      while
+      loop
       {
         {
           let r: i32 = best_uv[i.wrapping_add(0i32.wrapping_mul(uv_w)) as usize] as i32;
@@ -105,30 +103,28 @@ pub fn ConvertWRGBToYUV(
             crate::scylla_glue::scylla_u16_of_u8_mut(v_ptr)[i as usize] = clip(v, yuv_max)
           }
         };
-        (
-          {
-            i = i.wrapping_add(1i32);
-            i
-          }
-        )
-        <
+        if
+        {
+          i = i.wrapping_add(1i32);
+          i
+        }
+        >=
         uv_w
-      }
-      { () };
+        { break }
+      };
       best_uv = &best_uv[3i32.wrapping_mul(uv_w) as usize..];
       u_ptr = &mut u_ptr[u_stride as usize..];
       v_ptr = &mut v_ptr[v_stride as usize..]
     };
-    (
-      {
-        j = j.wrapping_add(1i32);
-        j
-      }
-    )
-    <
+    if
+    {
+      j = j.wrapping_add(1i32);
+      j
+    }
+    >=
     uv_h
-  }
-  { () };
+    { break }
+  };
   return 1i32
 }
 
@@ -312,7 +308,7 @@ pub fn DoSharpArgbToYuv(
         target_y_ofs = 0usize;
         target_uv_ofs = 0usize;
         j = 0i32;
-        while
+        loop
         {
           {
             let src1: (&mut [u16], &mut [u16]) =
@@ -374,9 +370,8 @@ pub fn DoSharpArgbToYuv(
             target_uv_ofs = target_uv_ofs.wrapping_add(3i32.wrapping_mul(uv_w) as usize);
             j = j.wrapping_add(2i32)
           };
-          j < h
-        }
-        { () };
+          if j >= h { break }
+        };
         if iter > 0i32
         {
           if diff_y_sum < diff_y_threshold { break };
@@ -434,7 +429,7 @@ pub fn ImportOneRow(
   let step: i32 = if rgb_bit_depth > 8i32 { rgb_step.wrapping_div(2i32) } else { rgb_step };
   let mut i: i32 = 0i32;
   let w: i32 = pic_width.wrapping_add(1i32) & ! 1i32;
-  while
+  loop
   {
     {
       let off: i32 = i.wrapping_mul(step);
@@ -458,16 +453,15 @@ pub fn ImportOneRow(
             Shift(crate::scylla_glue::scylla_u16_of_u8(b_ptr)[off as usize] as i32, shift) as u16
       }
     };
-    (
-      {
-        i = i.wrapping_add(1i32);
-        i
-      }
-    )
-    <
+    if
+    {
+      i = i.wrapping_add(1i32);
+      i
+    }
+    >=
     pic_width
-  }
-  { () };
+    { break }
+  };
   if pic_width & 1i32 != 0i32
   {
     dst[pic_width.wrapping_add(0i32.wrapping_mul(w)) as usize] =
@@ -823,7 +817,7 @@ pub enum SharpYuvTransferFunctionType
 pub fn StoreGray(rgb: &[u16], y: &mut [u16], w: i32)
 {
   let mut i: i32 = 0i32;
-  while
+  loop
   {
     y[i as usize] =
         RGBToGray(
@@ -833,16 +827,15 @@ pub fn StoreGray(rgb: &[u16], y: &mut [u16], w: i32)
         )
         as
         u16;
-    (
-      {
-        i = i.wrapping_add(1i32);
-        i
-      }
-    )
-    <
+    if
+    {
+      i = i.wrapping_add(1i32);
+      i
+    }
+    >=
     w
+    { break }
   }
-  { () }
 }
 
 pub fn UpdateChroma(
@@ -855,7 +848,7 @@ pub fn UpdateChroma(
 )
 {
   let mut i: i32 = 0i32;
-  while
+  loop
   {
     {
       let r: i32 =
@@ -899,16 +892,15 @@ pub fn UpdateChroma(
       src1 = &src1[2usize..];
       src2 = &src2[2usize..]
     };
-    (
-      {
-        i = i.wrapping_add(1i32);
-        i
-      }
-    )
-    <
+    if
+    {
+      i = i.wrapping_add(1i32);
+      i
+    }
+    >=
     uv_w
+    { break }
   }
-  { () }
 }
 
 #[inline] pub fn UpdateW(
@@ -920,7 +912,7 @@ pub fn UpdateChroma(
 )
 {
   let mut i: i32 = 0i32;
-  while
+  loop
   {
     {
       let R: u32 =
@@ -944,16 +936,15 @@ pub fn UpdateChroma(
       let Y: u32 = RGBToGray(R as i64, G as i64, B as i64) as u32;
       dst[i as usize] = SharpYuvLinearToGamma(Y, bit_depth, transfer_type) as u16
     };
-    (
-      {
-        i = i.wrapping_add(1i32);
-        i
-      }
-    )
-    <
+    if
+    {
+      i = i.wrapping_add(1i32);
+      i
+    }
+    >=
     w
+    { break }
   }
-  { () }
 }
 
 pub fn clip_8b(v: i16) -> u8
