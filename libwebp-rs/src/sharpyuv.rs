@@ -4,8 +4,22 @@
 #![allow(unused_assignments)]
 #![allow(unreachable_patterns)]
 #![allow(unused_mut)]
-
 #![allow(static_mut_refs)]
+
+#[derive(PartialEq, Clone, Copy)]
+pub enum CPUFeature
+{
+  kSSE2,
+  kSSE3,
+  kSlowSSSE3,
+  kSSE4_1,
+  kAVX,
+  kAVX2,
+  kNEON,
+  kMIPS32,
+  kMIPSdspR2,
+  kMSA
+}
 
 pub fn ConvertWRGBToYUV(
   mut best_y: &[u16],
@@ -1180,15 +1194,10 @@ pub fn SharpYuvUpdateRGB(src: &[i16], r#ref: &[i16], dst: &mut [i16], len: i32)
 
 pub fn SharpYuvUpdateRGB_C(r#ref: &[i16], src: &[i16], dst: &mut [i16], len: i32)
 {
-  let mut i: i32 = 0i32;
-  while
-  i < len
+  for i in 0i32..len
   {
-    {
-      let diff_uv: i32 = (r#ref[i as usize] as i32).wrapping_sub(src[i as usize] as i32);
-      dst[i as usize] = (dst[i as usize] as i32).wrapping_add(diff_uv) as i16
-    };
-    i = i.wrapping_add(1i32)
+    let diff_uv: i32 = (r#ref[i as usize] as i32).wrapping_sub(src[i as usize] as i32);
+    dst[i as usize] = (dst[i as usize] as i32).wrapping_add(diff_uv) as i16
   }
 }
 
@@ -1200,21 +1209,13 @@ pub fn SharpYuvUpdateY_C(r#ref: &[u16], src: &[u16], dst: &mut [u16], len: i32, 
     u64
 {
   let mut diff: u64 = 0u64;
-  let mut i: i32;
   let max_y: i32 = 1i32.wrapping_shl(bit_depth as u32).wrapping_sub(1i32);
+  for i in 0i32..len
   {
-    i = 0i32;
-    while
-    i < len
-    {
-      {
-        let diff_y: i32 = (r#ref[i as usize] as i32).wrapping_sub(src[i as usize] as i32);
-        let new_y: i32 = (dst[i as usize] as i32).wrapping_add(diff_y);
-        dst[i as usize] = clip(new_y, max_y);
-        diff = diff.wrapping_add(crate::_stdlib::abs(diff_y) as u64)
-      };
-      i = i.wrapping_add(1i32)
-    }
+    let diff_y: i32 = (r#ref[i as usize] as i32).wrapping_sub(src[i as usize] as i32);
+    let new_y: i32 = (dst[i as usize] as i32).wrapping_add(diff_y);
+    dst[i as usize] = clip(new_y, max_y);
+    diff = diff.wrapping_add(crate::_stdlib::abs(diff_y) as u64)
   };
   return diff
 }
@@ -1436,51 +1437,36 @@ pub fn SharpYuvInitGammaTables()
 {
   if unsafe { kGammaTablesSOk } == 0i32
   {
-    let mut v: i32;
     let a: f64 = 0.0992968268094f64;
     let thresh: f64 = 0.0180539685108f64;
     let final_scale: f64 = 1i32.wrapping_shl(16u32) as f64;
     {
       let norm: f64 = 1.0f64 / 1i32.wrapping_shl(10u32) as f64;
       let a_rec: f64 = 1.0f64 / (1.0f64 + a);
+      for v in 0i32..=1i32.wrapping_shl(10u32)
       {
-        v = 0i32;
-        while
-        v <= 1i32.wrapping_shl(10u32)
-        {
-          {
-            let g: f64 = norm * v as f64;
-            let mut value: f64;
-            if g <= thresh * 4.5f64
-            { value = g / 4.5f64 }
-            else
-            { value = crate::math::pow(a_rec * (g + a), kGammaF) };
-            unsafe { kGammaToLinearTabS[v as usize] = (value * final_scale + 0.5f64) as u32 }
-          };
-          v = v.wrapping_add(1i32)
-        }
+        let g: f64 = norm * v as f64;
+        let mut value: f64;
+        if g <= thresh * 4.5f64
+        { value = g / 4.5f64 }
+        else
+        { value = crate::math::pow(a_rec * (g + a), kGammaF) };
+        unsafe { kGammaToLinearTabS[v as usize] = (value * final_scale + 0.5f64) as u32 }
       };
       unsafe { kGammaToLinearTabS[1i32.wrapping_shl(10u32).wrapping_add(1i32) as usize] =
           kGammaToLinearTabS[1i32.wrapping_shl(10u32) as usize] }
     };
     {
       let scale: f64 = 1.0f64 / 1i32.wrapping_shl(9u32) as f64;
+      for v in 0i32..=1i32.wrapping_shl(9u32)
       {
-        v = 0i32;
-        while
-        v <= 1i32.wrapping_shl(9u32)
-        {
-          {
-            let g: f64 = scale * v as f64;
-            let mut value: f64;
-            if g <= thresh
-            { value = 4.5f64 * g }
-            else
-            { value = (1.0f64 + a) * crate::math::pow(g, 1.0f64 / kGammaF) - a };
-            unsafe { kLinearToGammaTabS[v as usize] = (final_scale * value + 0.5f64) as u32 }
-          };
-          v = v.wrapping_add(1i32)
-        }
+        let g: f64 = scale * v as f64;
+        let mut value: f64;
+        if g <= thresh
+        { value = 4.5f64 * g }
+        else
+        { value = (1.0f64 + a) * crate::math::pow(g, 1.0f64 / kGammaF) - a };
+        unsafe { kLinearToGammaTabS[v as usize] = (final_scale * value + 0.5f64) as u32 }
       };
       unsafe { kLinearToGammaTabS[1i32.wrapping_shl(9u32).wrapping_add(1i32) as usize] =
           kLinearToGammaTabS[1i32.wrapping_shl(9u32) as usize] }

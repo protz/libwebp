@@ -36,7 +36,6 @@ void SharpYuvInitGammaTables(void) {
   assert(GAMMA_TO_LINEAR_BITS <= 16);
 #endif
   if (!kGammaTablesSOk) {
-    int v;
     const double a = 0.09929682680944;
     const double thresh = 0.018053968510807;
     const double final_scale = 1 << GAMMA_TO_LINEAR_BITS;
@@ -44,7 +43,7 @@ void SharpYuvInitGammaTables(void) {
     {
       const double norm = 1. / GAMMA_TO_LINEAR_TAB_SIZE;
       const double a_rec = 1. / (1. + a);
-      for (v = 0; v <= GAMMA_TO_LINEAR_TAB_SIZE; ++v) {
+      for (int v = 0; v <= GAMMA_TO_LINEAR_TAB_SIZE; ++v) {
         const double g = norm * v;
         double value;
         if (g <= thresh * 4.5) {
@@ -61,7 +60,7 @@ void SharpYuvInitGammaTables(void) {
     // Precompute linear to gamma table.
     {
       const double scale = 1. / LINEAR_TO_GAMMA_TAB_SIZE;
-      for (v = 0; v <= LINEAR_TO_GAMMA_TAB_SIZE; ++v) {
+      for (int v = 0; v <= LINEAR_TO_GAMMA_TAB_SIZE; ++v) {
         const double g = scale * v;
         double value;
         if (g <= thresh) {

@@ -29,9 +29,8 @@ static uint16_t clip(int v, int max) {
 static uint64_t SharpYuvUpdateY_C(const uint16_t* ref, const uint16_t* src,
                                   uint16_t* dst, int len, int bit_depth) {
   uint64_t diff = 0;
-  int i;
   const int max_y = (1 << bit_depth) - 1;
-  for (i = 0; i < len; ++i) {
+  for (int i = 0; i < len; ++i) {
     const int diff_y = ref[i] - src[i];
     const int new_y = (int)dst[i] + diff_y;
     dst[i] = clip(new_y, max_y);
@@ -42,8 +41,7 @@ static uint64_t SharpYuvUpdateY_C(const uint16_t* ref, const uint16_t* src,
 
 static void SharpYuvUpdateRGB_C(const int16_t* ref, const int16_t* src,
                                 int16_t* dst, int len) {
-  int i;
-  for (i = 0; i < len; ++i) {
+  for (int i = 0; i < len; ++i) {
     const int diff_uv = ref[i] - src[i];
     dst[i] += diff_uv;
   }
